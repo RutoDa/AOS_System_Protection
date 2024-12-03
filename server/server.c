@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include "capability.h"
+#include "command_handler.h"
 #include "init.h"
 
 // Server configuration
@@ -19,6 +20,7 @@
 Groups *groups;
 Users *users;
 
+
 void* handle_client(void* client_socket) {
     int sock = *(int*)client_socket;
     char buffer[BUFFER_SIZE];
@@ -27,21 +29,14 @@ void* handle_client(void* client_socket) {
     while (1) {
         memset(buffer, 0, BUFFER_SIZE);
         int bytes_received = recv(sock, buffer, BUFFER_SIZE, 0);
+        if (bytes_received <= 0) break;
+
+        char command[50], username[50];
+        parse_data(buffer, command, username);                
+        printf("Recevied: {User: %s, Command: %s}\n", username, command);
+        handle_command(command, username);
         
-        if (bytes_received <= 0) {
-            break;
-        }
-
-        char command[50], filename[100], param[50], username[50];
-        sscanf(buffer, "%s %s %s %s", command, filename, param, username);
-
-        if (strcmp(command, "create") == 0) {
-            int result = create_file(filename, username, param);
-            sprintf(response, result == 0 ? "File created successfully" : "File creation failed");
-        }
-        // TODO: 實現 read, write, mode 等其他命令
-
-        send(sock, response, strlen(response), 0);
+        //send(sock, response, strlen(response), 0);
     }
 
     close(sock);
@@ -66,6 +61,14 @@ int main(void) {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
+
+    // Set SO_REUSEADDR option
+    int opt = 1;
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
@@ -76,6 +79,7 @@ int main(void) {
         exit(EXIT_FAILURE);
     }
 
+        
     // Listen for incoming connections
     if (listen(server_fd, MAX_CLIENTS) < 0) {
         perror("listen");

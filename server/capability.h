@@ -47,12 +47,17 @@
 #define CAPABILITY_H
 #include <stdbool.h>
 #include <pthread.h>
+#include <string.h>
+
+#define FILE_FOLDER "files/"
 
 typedef struct File {
     // The name of the file
-    char file_name[256];
+    char name[256];
     // The lock for the file
     pthread_rwlock_t rwlock;
+    // Pointer to the next file in the list
+    struct File *next;
 } File;
 
 
@@ -124,16 +129,28 @@ typedef struct Users {
     int count;
 } Users;
 
-User* create_user(Users *users, Group *groups, char *username, char *group_name);
+User* create_user(Users *users, Groups *groups, char *username, char *group_name);
 
 Group* find_group_by_name(Groups *groups, const char *group_name);
 
+User* find_user_by_name(Users *users, const char *user_name);
+
 Group* create_group(Groups *groups, const char *group_name);
+
+File* create_file(Files* files, const char *file_name);
+
+void add_owner_capability(File *file, User *user, bool read_permission, bool write_permission);
+
+void add_group_capability(File *file, Group *group, bool read_permission, bool write_permission);
+
+void add_others_capability(File *file, Users *users, User *owner, bool read_permission, bool write_permission);
+
+Files* init_files(void);
 
 Groups* init_groups(void);
 
 Users* init_users(void);
 
-void free_system(Groups *groups, Users *users);
+void free_system(Groups *groups, Users *users, Files *files);
 
 #endif 

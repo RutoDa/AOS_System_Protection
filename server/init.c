@@ -3,7 +3,9 @@
 #include "capability.h"
 
 
-void init_system(Groups *groups, Users *users) {
+void init_system(Groups *groups, Users *users, Files *files) {
+    // Delete Files in the files folder
+    system("rm -rf files/*");
 
     // Create default groups
     Group *group_AOS_students = create_group(groups, "AOS_students");
@@ -19,4 +21,5 @@ void init_system(Groups *groups, Users *users) {
     User *CSE_user1 = create_user(users, groups, "CSE_user1", "CSE_students");
     User *CSE_user2 = create_user(users, groups, "CSE_user2", "CSE_students");
     User *CSE_user3 = create_user(users, groups, "CSE_user3", "CSE_students");
+
 }

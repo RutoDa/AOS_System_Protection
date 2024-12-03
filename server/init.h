@@ -3,6 +3,6 @@
 
 #include "capability.h"
 
-void init_system(Groups *groups, Users *users);
+void init_system(Groups *groups, Users *users, Files *files);
 
 #endif

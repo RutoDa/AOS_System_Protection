@@ -11,21 +11,26 @@
 #include "command_handler.h"
 #include "init.h"
 
+// Thread data
+typedef struct {
+    int client_socket;
+    Users *users;
+    Files *files;
+} thread_data_t;
+
 // Server configuration
 #define PORT 8080
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 1024
 
-// Global variables
-Groups *groups;
-Users *users;
-
-
-void* handle_client(void* client_socket) {
-    int sock = *(int*)client_socket;
+void* handle_client(void* arg) {
+    thread_data_t *data = (thread_data_t*)arg;
+    int sock = data->client_socket;
+    Users *users = data->users;
+    Files *files = data->files;
     char buffer[BUFFER_SIZE];
     char response[BUFFER_SIZE];
-
+    
     while (1) {
         memset(buffer, 0, BUFFER_SIZE);
         int bytes_received = recv(sock, buffer, BUFFER_SIZE, 0);
@@ -34,11 +39,16 @@ void* handle_client(void* client_socket) {
         char command[50], username[50];
         parse_data(buffer, command, username);                
         printf("Recevied: {User: %s, Command: %s}\n", username, command);
-        handle_command(command, username);
         
-        //send(sock, response, strlen(response), 0);
+        int result = handle_command(users, files, command, username, response);
+        
+        if (result == -1)
+            strcpy(response, "Error: User not found");
+
+        send(sock, response, strlen(response), 0);
     }
 
+    free(data);
     close(sock);
 }
 
@@ -47,7 +57,9 @@ int main(void) {
     // Initialize groups and users
     Groups *groups = init_groups();
     Users *users = init_users();
-    init_system(groups, users);
+    Files *files = init_files();
+    init_system(groups, users, files);
+    
 
     
     int server_fd, client_socket;
@@ -94,8 +106,12 @@ int main(void) {
             continue;
         }
 
+        thread_data_t *data = malloc(sizeof(thread_data_t));
+        data->client_socket = client_socket;
+        data->users = users;
+        data->files = files;
         
-        if (pthread_create(&threads[thread_count], NULL, handle_client, (void*)&client_socket) < 0) {
+        if (pthread_create(&threads[thread_count], NULL, handle_client, (void*)data) < 0) {
             perror("could not create thread");
             continue;
         }
@@ -104,6 +120,6 @@ int main(void) {
     }
 
 
-    free_system(groups, users);
+    free_system(groups, users, files);
     return 0;
 }

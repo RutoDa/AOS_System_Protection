@@ -72,16 +72,18 @@ int main(void) {
 
         
         char full_command[BUFFER_SIZE];
-        snprintf(full_command, sizeof(full_command), "%s|}{|%s", 
+        int ret = snprintf(full_command, sizeof(full_command), "%s|}{|%s", 
                  command, username);
-
+        if (ret >= sizeof(full_command)) {
+            fprintf(stderr, "Error: command buffer overflow\n");
+            exit(1);
+        }
         
         send(sock, full_command, strlen(full_command), 0);
 
-        //break;
-        //memset(buffer, 0, BUFFER_SIZE);
-        //read(sock, buffer, BUFFER_SIZE);
-        //printf("Server response: %s\n", buffer);
+        memset(buffer, 0, BUFFER_SIZE);
+        read(sock, buffer, BUFFER_SIZE);
+        printf("[Server] %s\n", buffer);
     }
 
     close(sock);

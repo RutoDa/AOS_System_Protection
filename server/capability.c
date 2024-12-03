@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
 #include "capability.h"
+
+pthread_mutex_t users_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t groups_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t files_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 Group* create_group(Groups *groups, const char *group_name) {
@@ -19,6 +25,9 @@ Group* create_group(Groups *groups, const char *group_name) {
     group->capability_list->tail = NULL;
     group->capability_list->count = 0;
     group->next = NULL;
+
+    pthread_mutex_lock(&groups_mutex);
+
     if (groups->head == NULL) {
         groups->head = group;
         groups->tail = group;
@@ -27,26 +36,38 @@ Group* create_group(Groups *groups, const char *group_name) {
         groups->tail = group;
     }
     groups->count++;
+
+    pthread_mutex_unlock(&groups_mutex);
+
     return group;
 }
 
 Group* find_group_by_name(Groups *groups, const char *group_name) {
+    pthread_mutex_lock(&groups_mutex);
     for (Group* group = groups->head; group != NULL; group = group->next) {
-        if (!strcmp(group->name, group_name))
+        if (!strcmp(group->name, group_name)) {
+            pthread_mutex_unlock(&groups_mutex);
             return group;
+        }
+            
     }
+    pthread_mutex_unlock(&groups_mutex);
     return NULL;
 }
 
 User* find_user_by_name(Users *users, const char *user_name) {
+    pthread_mutex_lock(&users_mutex);
     for (User* user = users->head; user != NULL; user = user->next) {
-        if (!strcmp(user->name, user_name)) 
+        if (!strcmp(user->name, user_name)) {
+            pthread_mutex_unlock(&users_mutex);
             return user;
+        }
     }
+    pthread_mutex_unlock(&users_mutex);
     return NULL;
 }
 
-User* create_user(Users *users, Group *groups, char *username, char *group_name) {
+User* create_user(Users *users, Groups *groups, char *username, char *group_name) {
     User *user = malloc(sizeof(User));
     if (user == NULL) {
         fprintf(stderr, "Error: Unable to allocate memory for user\n");
@@ -70,6 +91,9 @@ User* create_user(Users *users, Group *groups, char *username, char *group_name)
     user->capability_list->tail = NULL;
     user->capability_list->count = 0;
     user->next = NULL;
+    
+    pthread_mutex_lock(&users_mutex);
+
     if (users->head == NULL) {
         users->head = user;
         users->tail = user;
@@ -78,7 +102,129 @@ User* create_user(Users *users, Group *groups, char *username, char *group_name)
         users->tail = user;
     }
     users->count++;
+
+    pthread_mutex_unlock(&users_mutex);
+
     return user;
+}
+
+File* create_file(Files* files, const char *file_name) {
+    File *file = malloc(sizeof(File));
+    if (file == NULL) {
+        fprintf(stderr, "Error: Unable to allocate memory for file\n");
+        exit(1);
+    }
+    strncpy(file->name, file_name, strlen(file_name)+1);
+    file->next = NULL;
+    if (pthread_rwlock_init(&file->rwlock, NULL) != 0) {
+        perror("Failed to initialize rwlock");
+        exit(1);
+    }
+    
+    char path[256];
+    snprintf(path, sizeof(path), "files/%s", file_name);
+    FILE *fp = fopen(path, "w");
+    if (fp == NULL) {
+        fprintf(stderr, "Error: Unable to create file %s\n", path);
+        free(file);
+        exit(1);
+    }
+    fclose(fp);
+
+    pthread_mutex_lock(&files_mutex);
+
+    if (files->head == NULL) {
+        files->head = file;
+        files->tail = file;
+    } else {
+        files->tail->next = file;
+        files->tail = file;
+    }
+    files->count++;
+
+    pthread_mutex_unlock(&files_mutex);
+
+    return file;
+}
+
+void add_owner_capability(File *file, User *user, bool read_permission, bool write_permission) {
+    Capability *capability = malloc(sizeof(Capability));
+    if (capability == NULL) {
+        fprintf(stderr, "Error: Unable to allocate memory for capability\n");
+        exit(1);
+    }
+    capability->file = file;
+    capability->read_permission = read_permission;
+    capability->write_permission = write_permission;
+    capability->next = NULL;
+
+    pthread_mutex_lock(&users_mutex);
+
+    
+    if (user->capability_list->head == NULL) {
+        user->capability_list->head = capability;
+        user->capability_list->tail = capability;
+    } else {
+        user->capability_list->tail->next = capability;
+        user->capability_list->tail = capability;
+    }
+    user->capability_list->count++;
+
+    pthread_mutex_unlock(&users_mutex);
+}
+
+void add_group_capability(File *file, Group *group, bool read_permission, bool write_permission) {
+    Capability *capability = malloc(sizeof(Capability));
+    if (capability == NULL) {
+        fprintf(stderr, "Error: Unable to allocate memory for capability\n");
+        exit(1);
+    }
+    capability->file = file;
+    capability->read_permission = read_permission;
+    capability->write_permission = write_permission;
+    capability->next = NULL;
+
+    pthread_mutex_lock(&groups_mutex);
+
+    if (group->capability_list->head == NULL) {
+        group->capability_list->head = capability;
+        group->capability_list->tail = capability;
+    } else {
+        group->capability_list->tail->next = capability;
+        group->capability_list->tail = capability;
+    }
+    group->capability_list->count++;
+
+    pthread_mutex_unlock(&groups_mutex);
+}
+
+void add_others_capability(File *file, Users *users, User *owner, bool read_permission, bool write_permission) {
+    Capability *capability = malloc(sizeof(Capability));
+    if (capability == NULL) {
+        fprintf(stderr, "Error: Unable to allocate memory for capability\n");
+        exit(1);
+    }
+    capability->file = file;
+    capability->read_permission = read_permission;
+    capability->write_permission = write_permission;
+    capability->next = NULL;
+
+    pthread_mutex_lock(&users_mutex);
+
+    for (User* user = users->head; user != NULL; user = user->next) {
+        if (strcmp(user->name, owner->name)) {
+            if (user->capability_list->head == NULL) {
+                user->capability_list->head = capability;
+                user->capability_list->tail = capability;
+            } else {
+                user->capability_list->tail->next = capability;
+                user->capability_list->tail = capability;
+            }
+            user->capability_list->count++;
+        }
+    }
+
+    pthread_mutex_unlock(&users_mutex);
 }
 
 Groups* init_groups(void) {
@@ -105,8 +251,19 @@ Users* init_users(void) {
     return users;
 }
 
+Files* init_files(void) {
+    Files *files = malloc(sizeof(Files));
+    if (files == NULL) {
+        fprintf(stderr, "Error: Unable to allocate memory for files\n");
+        exit(1);
+    }
+    files->head = NULL;
+    files->tail = NULL;
+    files->count = 0;
+    return files;
+}
 
-void free_system(Groups *groups, Users *users) {
+void free_system(Groups *groups, Users *users, Files *files) {
     Group *group = groups->head;
     while (group != NULL) {
         Group *next_group = group->next;
@@ -138,4 +295,13 @@ void free_system(Groups *groups, Users *users) {
         user = next_user;
     }
     free(users);
+
+    File *file = files->head;
+    while (file != NULL) {
+        File *next_file = file->next;
+        free(file);
+        file = next_file;
+    }
+    free(files);
 }
+

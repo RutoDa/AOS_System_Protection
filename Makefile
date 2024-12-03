@@ -2,7 +2,10 @@
 CC = gcc
 
 # Compiler flags
-CFLAGS = -w -pthread
+CFLAGS = -pthread
+
+# Linker flags
+LDFLAGS = -lpthread
 
 # Directories
 SRCDIR = server
@@ -23,7 +26,7 @@ server.exe: $(SERVER_OBJS)
 
 $(OBJDIR)/server.o: $(SRCDIR)/server.c
 	@echo "Compiling $< ..."
-	@$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@ $(LDFLAGS)
 
 $(OBJDIR)/capability.o: $(SRCDIR)/capability.c 
 	@echo "Compiling $< ..."
@@ -45,3 +48,4 @@ clean:
 	@echo "Cleaning up ..."
 	@rm -f $(OBJDIR)/*.o
 	@rm -f *.exe
+	@rm -f files/*

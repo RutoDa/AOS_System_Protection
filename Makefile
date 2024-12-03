@@ -4,32 +4,44 @@ CC = gcc
 # Compiler flags
 CFLAGS = -w -pthread
 
+# Directories
+SRCDIR = server
+OBJDIR = obj
+CLIENTDIR = client
+
 # Files to be compiled
-TARGET = server client
+TARGET = server.exe client.exe
 
 # Object files
-OBJS = server.o capability_list.o init.o
+SERVER_OBJS = $(OBJDIR)/capability.o $(OBJDIR)/init.o $(OBJDIR)/command_handler.o $(OBJDIR)/server.o
 
 all: $(TARGET)
 
-server: server.c capability.o init.o
-	@echo "Compiling server.c and linking ..."
-	@$(CC) $(CFLAGS) -c server.c
-	@$(CC) $(CFLAGS) -o server server.o capability.o init.o
+server.exe: $(SERVER_OBJS)
+	@echo "Linking server.exe ..."
+	@$(CC) $(CFLAGS) -o $@ $^
 
+$(OBJDIR)/server.o: $(SRCDIR)/server.c
+	@echo "Compiling $< ..."
+	@$(CC) $(CFLAGS) -c $< -o $@
 
-capability.o: capability.c capability.h
-	@echo "Compiling capability.c ..."
-	@$(CC) $(CFLAGS) -c capability.c
+$(OBJDIR)/capability.o: $(SRCDIR)/capability.c 
+	@echo "Compiling $< ..."
+	@$(CC) $(CFLAGS) -c $< -o $@
 
-init.o: init.c capability.o
-	@echo "Compiling init.c ..."
-	@$(CC) $(CFLAGS) -c init.c
+$(OBJDIR)/command_handler.o: $(SRCDIR)/command_handler.c 
+	@echo "Compiling $< ..."
+	@$(CC) $(CFLAGS) -c $< -o $@
 
-client: client.c
-	@echo "Compiling client.c ..."
-	@$(CC) $(CFLAGS) -o client client.c
+$(OBJDIR)/init.o: $(SRCDIR)/init.c $(OBJDIR)/capability.o
+	@echo "Compiling $< ..."
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+client.exe: $(CLIENTDIR)/client.c
+	@echo "Compiling $< ..."
+	@$(CC) $(CFLAGS) -o $@ $<
 
 clean:
 	@echo "Cleaning up ..."
-	@rm -f $(TARGET) $(OBJS)
+	@rm -f $(OBJDIR)/*.o
+	@rm -f *.exe

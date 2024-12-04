@@ -135,6 +135,8 @@ Group* find_group_by_name(Groups *groups, const char *group_name);
 
 User* find_user_by_name(Users *users, const char *user_name);
 
+File* find_file_by_name(Files *files, const char *file_name);
+
 Group* create_group(Groups *groups, const char *group_name);
 
 File* create_file(Files* files, const char *file_name);
@@ -144,6 +146,8 @@ void add_owner_capability(File *file, User *user, bool read_permission, bool wri
 void add_group_capability(File *file, Group *group, bool read_permission, bool write_permission);
 
 void add_others_capability(File *file, Users *users, User *owner, bool read_permission, bool write_permission);
+
+bool user_has_capability(User *user, File *file);
 
 Files* init_files(void);
 

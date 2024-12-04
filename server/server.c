@@ -40,14 +40,25 @@ void* handle_client(void* arg) {
         parse_data(buffer, command, username);                
         printf("Recevied: {User: %s, Command: %s}\n", username, command);
         
-        int result = handle_command(users, files, command, username, response);
+        memset(response, 0, BUFFER_SIZE);
+        int result = handle_command(sock, users, files, command, username, response);
         
         if (result == -1)
             strcpy(response, "Error: User not found");
+        else if (result == -2)
+            strcpy(response, "Error: File not found");
+        else if (result == -3)
+            strcpy(response, "Error: Invalid format");
+        else if (result == -4)
+            strcpy(response, "Error: File already exists");
+        else if (result == -5)
+            strcpy(response, "Error: User does not have permission");
+        else if (result == -6)
+            return NULL;
 
         send(sock, response, strlen(response), 0);
     }
-
+    
     free(data);
     close(sock);
 }

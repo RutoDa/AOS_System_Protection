@@ -67,6 +67,18 @@ User* find_user_by_name(Users *users, const char *user_name) {
     return NULL;
 }
 
+File* find_file_by_name(Files *files, const char *file_name) {
+    pthread_mutex_lock(&files_mutex);
+    for (File* file = files->head; file != NULL; file = file->next) {
+        if (!strcmp(file->name, file_name)) {
+            pthread_mutex_unlock(&files_mutex);
+            return file;
+        }
+    }
+    pthread_mutex_unlock(&files_mutex);
+    return NULL;
+}
+
 User* create_user(Users *users, Groups *groups, char *username, char *group_name) {
     User *user = malloc(sizeof(User));
     if (user == NULL) {
@@ -225,6 +237,30 @@ void add_others_capability(File *file, Users *users, User *owner, bool read_perm
     }
 
     pthread_mutex_unlock(&users_mutex);
+}
+
+bool user_has_capability(User *user, File *file) {
+    CapabilityList *group_cap = user->group->capability_list;
+
+    for (Capability *cap = group_cap->head; cap != NULL; cap = cap->next) {
+        if (!strcmp(cap->file->name, file->name)) {
+            if (cap->read_permission)
+                return true;
+            else break;
+        }
+    }
+    
+    CapabilityList *user_cap = user->capability_list;
+
+    for (Capability *cap = user_cap->head; cap != NULL; cap = cap->next) {
+        if (!strcmp(cap->file->name, file->name)) {
+            if (cap->read_permission)
+                return true;
+            else break;
+        }
+    }
+
+    return false;
 }
 
 Groups* init_groups(void) {

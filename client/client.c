@@ -123,6 +123,27 @@ int main(void)
             fflush(stdout);
             fclose(fp);
         }
+        else if (!strcmp(token, "write") && !has_error(buffer))
+        {
+            char filename[256];
+            token = strtok(NULL, " ");
+            strcpy(filename, token);
+            printf("[Server] File (%s) upload started...\n", filename);
+            FILE *fp = fopen(filename, "r");
+            if (fp == NULL)
+            {
+                perror("fopen");
+                close(sock);
+                continue;
+            }
+            while (1) {
+                int bytes_read = fread(buffer, 1, sizeof(buffer), fp);
+                if (bytes_read == 0) break;
+                send(sock, buffer, bytes_read, 0);
+            }
+            fclose(fp);
+            printf("[Server] File (%s) upload completed!\n", filename);
+        }
         else
         {
             printf("[Server] %s\n", buffer);

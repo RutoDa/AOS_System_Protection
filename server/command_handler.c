@@ -23,9 +23,11 @@ int handle_command(int sock, Users* users, Files* files, char* command, char* us
     char operation[10], filename[256], parameter[50];
 
     char *token = strtok(command, " ");
+    if (token == NULL) return -3; // Invalid format
     if (!strcmp(token, "create")) {
         strcpy(operation, token);
         token = strtok(NULL, " ");
+        if (token == NULL) return -3; // Invalid format
         strcpy(filename, token);
         token = strtok(NULL, " ");
         if (token == NULL) return -3; // Invalid format
@@ -34,9 +36,19 @@ int handle_command(int sock, Users* users, Files* files, char* command, char* us
     } else if (!strcmp(token, "read")) {
         strcpy(operation, token);
         token = strtok(NULL, " ");
+        if (token == NULL) return -3; // Invalid format
         strcpy(filename, token);
         return handle_read(sock, filename, users, user, files, response);
-    } 
+    } else if (!strcmp(token, "write")) {
+        strcpy(operation, token);
+        token = strtok(NULL, " ");
+        if (token == NULL) return -3; // Invalid format
+        strcpy(filename, token);
+        token = strtok(NULL, " ");
+        if (token == NULL) return -3; // Invalid format
+        strcpy(parameter, token);
+        return handle_write(sock, filename, parameter, users, user, files, response);
+    } else return -3; // Invalid format
 }
 
 int handle_create(char* filename, char* parameter, Users* users, User* user, Files* files, char* response) {
@@ -52,7 +64,7 @@ int handle_create(char* filename, char* parameter, Users* users, User* user, Fil
     bool others_read = parameter[4] == 'r';
     bool others_write = parameter[5] == 'w';
 
-    File *file = create_file(files, filename);
+    File *file = create_file(files, filename, user);
     if (owner_read || owner_write) 
         add_owner_capability(file, user, owner_read, owner_write);
     if (group_read || group_write) 
@@ -67,7 +79,7 @@ int handle_create(char* filename, char* parameter, Users* users, User* user, Fil
 int handle_read(int sock, char* filename, Users* users, User* user, Files* files, char* response) {
     File *file = find_file_by_name(files, filename);
     if (file == NULL) return -2; // File not found
-    if (user_has_capability(user, file)) {
+    if (user_has_capability(user, file, "read")) {
         
         char path[300];
         snprintf(path, sizeof(path), "files/%s", file->name);
@@ -81,8 +93,39 @@ int handle_read(int sock, char* filename, Users* users, User* user, Files* files
         close(sock);
         return -6;    // File read successfully
     }
-        
-
     return -5; // User does not have permission to read file
 }
 
+int handle_write(int sock, char* filename, char* parameter, Users* users, User* user, Files* files, char* response) {
+    if (strncmp(parameter, "o", 1) != 0 && strncmp(parameter, "a", 1) != 0) return -3; // Invalid format
+    File *file = find_file_by_name(files, filename);
+    if (file == NULL) return -2; // File not found
+
+    if (user_has_capability(user, file, "write")) {
+        strncpy(response, "Uploading file...", strlen("Uploading file...")+1);
+        send(sock, response, strlen(response), 0);
+        
+        char path[300];
+        snprintf(path, sizeof(path), "files/%s", file->name);
+        FILE *fp = fopen(path, strncmp(parameter, "o", 1) == 0 ? "w" : "a");
+        
+        char buffer[BUFFER_SIZE];
+        while (1)
+        {
+            int bytes_read = recv(sock, buffer, BUFFER_SIZE, 0);
+            if (bytes_read < 0)
+            {
+                perror("recv");
+                break;
+            }
+            if (bytes_read == 0)
+                break;
+
+            fwrite(buffer, 1, bytes_read, fp);
+        }
+        
+        fclose(fp);
+        return -7; // File write successfully
+    }
+    return -5; // User does not have permission to write file
+}

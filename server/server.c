@@ -53,7 +53,7 @@ void* handle_client(void* arg) {
             strcpy(response, "Error: File already exists");
         else if (result == -5)
             strcpy(response, "Error: User does not have permission");
-        else if (result == -6)
+        else if (result == -6 || result == -7) // File read or write successfully
             return NULL;
 
         send(sock, response, strlen(response), 0);

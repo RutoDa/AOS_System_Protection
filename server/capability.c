@@ -120,7 +120,7 @@ User* create_user(Users *users, Groups *groups, char *username, char *group_name
     return user;
 }
 
-File* create_file(Files* files, const char *file_name) {
+File* create_file(Files* files, const char *file_name, User *owner) {
     File *file = malloc(sizeof(File));
     if (file == NULL) {
         fprintf(stderr, "Error: Unable to allocate memory for file\n");
@@ -132,6 +132,7 @@ File* create_file(Files* files, const char *file_name) {
         perror("Failed to initialize rwlock");
         exit(1);
     }
+    strncpy(file->owner, owner->name, strlen(owner->name)+1);
     
     char path[256];
     snprintf(path, sizeof(path), "files/%s", file_name);
@@ -239,29 +240,47 @@ void add_others_capability(File *file, Users *users, User *owner, bool read_perm
     pthread_mutex_unlock(&users_mutex);
 }
 
-bool user_has_capability(User *user, File *file) {
-    CapabilityList *group_cap = user->group->capability_list;
-
-    for (Capability *cap = group_cap->head; cap != NULL; cap = cap->next) {
-        if (!strcmp(cap->file->name, file->name)) {
-            if (cap->read_permission)
-                return true;
-            else break;
-        }
-    }
-    
+bool user_has_capability(User *user, File *file, const char *operation) {
     CapabilityList *user_cap = user->capability_list;
 
     for (Capability *cap = user_cap->head; cap != NULL; cap = cap->next) {
         if (!strcmp(cap->file->name, file->name)) {
-            if (cap->read_permission)
-                return true;
-            else break;
+            if (!strcmp(operation, "read")) {
+                if (cap->read_permission)
+                    return true;
+                else break;
+            } else if (!strcmp(operation, "write")) {
+                if (cap->write_permission)
+                    return true;
+                else break;
+            }
+        }
+    }
+
+    // Check if user is the owner of the file.
+    // If user is the owner then return false.
+    if (!strcmp(user->name, file->owner))
+        return false;
+
+    CapabilityList *group_cap = user->group->capability_list;
+
+    for (Capability *cap = group_cap->head; cap != NULL; cap = cap->next) {
+        if (!strcmp(cap->file->name, file->name)) {
+            if (!strcmp(operation, "read")) {
+                if (cap->read_permission)
+                    return true;
+                else break;
+            } else if (!strcmp(operation, "write")) {
+                if (cap->write_permission)
+                    return true;
+                else break;
+            }
         }
     }
 
     return false;
 }
+
 
 Groups* init_groups(void) {
     Groups *groups = malloc(sizeof(Groups));

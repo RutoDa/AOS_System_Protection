@@ -29,6 +29,7 @@
             - next: Pointer to the next capability in the list
         File
             - file_name: The name of the file
+            - owner: The owner of the file
             - rwlock: The lock for the file
         Files
             - head: Pointer to the first file in the list
@@ -38,8 +39,10 @@
         user -> group -> capability
         |
         --> capability
-    4.Server will first check if the group that the user belongs to has the capability.
-      If the group does not have the capability, the server will check if the user has the capability.
+    4.Server will first check if the user has the capability to perform the operation on the file.
+        If the user has the capability, the server will perform the operation.
+        If the user does not have the capability and the user is owner, the server will send an error message.
+        If the user does not have the capability and the user is not the owner, the server will check the group capability.
     5. In my design, one user just belongs to one group.
 */
 
@@ -54,6 +57,8 @@
 typedef struct File {
     // The name of the file
     char name[256];
+    // The owner of the file
+    char owner[256];
     // The lock for the file
     pthread_rwlock_t rwlock;
     // Pointer to the next file in the list
@@ -139,7 +144,7 @@ File* find_file_by_name(Files *files, const char *file_name);
 
 Group* create_group(Groups *groups, const char *group_name);
 
-File* create_file(Files* files, const char *file_name);
+File* create_file(Files* files, const char *file_name, User *owner);
 
 void add_owner_capability(File *file, User *user, bool read_permission, bool write_permission);
 
@@ -147,7 +152,7 @@ void add_group_capability(File *file, Group *group, bool read_permission, bool w
 
 void add_others_capability(File *file, Users *users, User *owner, bool read_permission, bool write_permission);
 
-bool user_has_capability(User *user, File *file);
+bool user_has_capability(User *user, File *file, const char *operation);
 
 Files* init_files(void);
 

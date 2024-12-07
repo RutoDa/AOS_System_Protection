@@ -59,6 +59,11 @@ void* handle_client(void* arg) {
             strcpy(response, "Error: User is not the owner of the file");
         else if (result == -9)
             break;
+        else if (result == -10)
+            strcpy(response, "Error: File is being read or written");
+        else if (result == -11)
+            strcpy(response, "Error: File is being written");
+        
         send(sock, response, strlen(response), 0);
     }
     

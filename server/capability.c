@@ -467,6 +467,7 @@ void free_system(Groups *groups, Users *users, Files *files) {
     File *file = files->head;
     while (file != NULL) {
         File *next_file = file->next;
+        pthread_rwlock_destroy(&file->rwlock);
         free(file);
         file = next_file;
     }

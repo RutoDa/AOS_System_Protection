@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <sys/socket.h>
+#include <pthread.h>
 #include "capability.h"
 #include "command_handler.h"
 
@@ -92,7 +93,8 @@ int handle_read(int sock, char* filename, Users* users, User* user, Files* files
     File *file = find_file_by_name(files, filename);
     if (file == NULL) return -2; // File not found
     if (user_has_capability(user, file, "read")) {
-        
+        if (pthread_rwlock_tryrdlock(&file->rwlock) != 0) return -11; // File is being written
+
         char path[300];
         snprintf(path, sizeof(path), "files/%s", file->name);
         FILE *fp = fopen(path, "r");
@@ -102,6 +104,9 @@ int handle_read(int sock, char* filename, Users* users, User* user, Files* files
             send(sock, response, bytes_read, 0);
         }
         fclose(fp);
+
+        // Unlock the file
+        pthread_rwlock_unlock(&file->rwlock);
         close(sock);
         return -6;    // File read successfully
     }
@@ -114,14 +119,18 @@ int handle_write(int sock, char* filename, char* parameter, Users* users, User* 
     if (file == NULL) return -2; // File not found
 
     if (user_has_capability(user, file, "write")) {
+        // Check if the file is being read or written
+        if (pthread_rwlock_trywrlock(&file->rwlock) != 0) return -10; // File is being read or written
+
         strncpy(response, "Uploading file...", strlen("Uploading file...")+1);
         send(sock, response, strlen(response), 0);
-        
+
         char path[300];
         snprintf(path, sizeof(path), "files/%s", file->name);
         FILE *fp = fopen(path, strncmp(parameter, "o", 1) == 0 ? "w" : "a");
-        
         char buffer[BUFFER_SIZE];
+
+
         while (1)
         {
             int bytes_read = recv(sock, buffer, BUFFER_SIZE, 0);
@@ -136,6 +145,9 @@ int handle_write(int sock, char* filename, char* parameter, Users* users, User* 
             fwrite(buffer, 1, bytes_read, fp);
         }
         
+        // Unlock the file
+        pthread_rwlock_unlock(&file->rwlock);
+
         fclose(fp);
         return -7; // File write successfully
     }

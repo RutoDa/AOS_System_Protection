@@ -47,7 +47,10 @@ bool has_error(char *buffer)
             strncmp(buffer, "Error: File not found", 21) == 0 ||
             strncmp(buffer, "Error: Invalid format", 21) == 0 ||
             strncmp(buffer, "Error: File already exists", 26) == 0 ||
-            strncmp(buffer, "Error: User does not have permission", 37) == 0);
+            strncmp(buffer, "Error: User does not have permission", 37) == 0 ||
+            strncmp(buffer, "Error: User is not the owner of the file", 42) == 0 ||
+            strncmp(buffer, "Error: File is being read or written", 37) == 0 || 
+            strncmp(buffer, "Error: File is being written", 30) == 0);
 }
 
 int main(void)

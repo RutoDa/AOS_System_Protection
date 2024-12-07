@@ -1,6 +1,6 @@
 # File System Server
-> Advanced Operating Systems - Homework 2(System Protection & Distributed Synchronization)
-> Homework requirements: <a src="Advanced Operating Systems - Homework 2.pdf">Advanced Operating Systems - Homework 2</a>
+> * Advanced Operating Systems - Homework 2(System Protection & Distributed Synchronization)
+> * Homework requirements: <a src="Advanced Operating Systems - Homework 2.pdf">Advanced Operating Systems - Homework 2</a>
 
 ## Compile
 ### Compile Server and Client

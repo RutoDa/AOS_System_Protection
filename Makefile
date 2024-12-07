@@ -10,6 +10,7 @@ LDFLAGS = -lpthread
 # Directories
 SRCDIR = server
 OBJDIR = obj
+FILEDIR = files
 CLIENTDIR = client
 
 # Files to be compiled
@@ -18,7 +19,16 @@ TARGET = server.exe client.exe
 # Object files
 SERVER_OBJS = $(OBJDIR)/capability.o $(OBJDIR)/init.o $(OBJDIR)/command_handler.o $(OBJDIR)/server.o
 
-all: $(TARGET)
+
+
+all: $(OBJDIR) $(FILEDIR) $(TARGET)
+
+# Create directories if they do not exist
+$(OBJDIR):
+	@mkdir -p $(OBJDIR)
+
+$(FILEDIR):
+	@mkdir -p $(FILEDIR)
 
 server.exe: $(SERVER_OBJS)
 	@echo "Linking server.exe ..."

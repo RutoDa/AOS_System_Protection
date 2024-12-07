@@ -29,6 +29,10 @@ write homework2.c o/a
 ```bash
 mode homework2.c rw----
 ```
+- Only the owner of the file can change the mode of the file
+  - If the file is not exist, show "File not found"
+  - If the file is not readable, show "Permission denied"
+  - If the mode is not valid, show "Invalid mode"
 
 #### Exit the client
 ```bash 

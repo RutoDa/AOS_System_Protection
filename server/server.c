@@ -10,7 +10,7 @@
 #include "capability.h"
 #include "command_handler.h"
 #include "init.h"
-
+//TODO: Sync 
 // Thread data
 typedef struct {
     int client_socket;
@@ -55,7 +55,10 @@ void* handle_client(void* arg) {
             strcpy(response, "Error: User does not have permission");
         else if (result == -6 || result == -7) // File read or write successfully
             return NULL;
-
+        else if (result == -8)
+            strcpy(response, "Error: User is not the owner of the file");
+        else if (result == -9)
+            break;
         send(sock, response, strlen(response), 0);
     }
     

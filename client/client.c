@@ -143,8 +143,11 @@ int main(void)
             }
             fclose(fp);
             printf("[Server] File (%s) upload completed!\n", filename);
-        }
-        else
+        } else if (!strcmp(token, "exit"))
+        {
+            close(sock);
+            break;
+        } else
         {
             printf("[Server] %s\n", buffer);
             fflush(stdout);

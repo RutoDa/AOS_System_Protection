@@ -11,4 +11,6 @@ int handle_read(int sock, char* filename, Users* users, User* user, Files* files
 
 int handle_write(int sock, char* filename, char* parameter, Users* users, User* user, Files* files, char* response);
 
+int handle_mode(char* filename, char* parameter, Users* users, User* user, Files* files, char* response);
+
 #endif

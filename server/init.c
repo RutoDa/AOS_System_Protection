@@ -17,6 +17,7 @@ void init_system(Groups *groups, Users *users, Files *files) {
     User *AOS_user3 = create_user(users, groups, "AOS_user3", "AOS_students");
     User *Ken = create_user(users, groups, "Ken", "AOS_students");
     User *Ken2 = create_user(users, groups, "Ken2", "AOS_students");
+    User *Ken3 = create_user(users, groups, "Ken3", "CSE_students");
 
     // Create CSE students
     User *CSE_user1 = create_user(users, groups, "CSE_user1", "CSE_students");

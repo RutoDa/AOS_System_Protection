@@ -212,19 +212,22 @@ void add_group_capability(File *file, Group *group, bool read_permission, bool w
 }
 
 void add_others_capability(File *file, Users *users, User *owner, bool read_permission, bool write_permission) {
-    Capability *capability = malloc(sizeof(Capability));
-    if (capability == NULL) {
-        fprintf(stderr, "Error: Unable to allocate memory for capability\n");
-        exit(1);
-    }
-    capability->file = file;
-    capability->read_permission = read_permission;
-    capability->write_permission = write_permission;
-    capability->next = NULL;
-
     pthread_mutex_lock(&users_mutex);
 
     for (User* user = users->head; user != NULL; user = user->next) {
+        // Skip owner and users in the same group as the owner
+        if (!strcmp(user->group->name, owner->group->name)) continue;
+
+        Capability *capability = malloc(sizeof(Capability));
+        if (capability == NULL) {
+            fprintf(stderr, "Error: Unable to allocate memory for capability\n");
+            exit(1);
+        }
+        capability->file = file;
+        capability->read_permission = read_permission;
+        capability->write_permission = write_permission;
+        capability->next = NULL;
+
         if (strcmp(user->name, owner->name)) {
             if (user->capability_list->head == NULL) {
                 user->capability_list->head = capability;
@@ -238,6 +241,113 @@ void add_others_capability(File *file, Users *users, User *owner, bool read_perm
     }
 
     pthread_mutex_unlock(&users_mutex);
+}
+
+void modify_capability(File *file, Users *users, User *owner, bool owner_read, bool owner_write, bool group_read, bool group_write, bool others_read, bool others_write) {
+    bool is_modified = false;
+    Capability *last_capability = NULL;
+
+    pthread_mutex_lock(&users_mutex);
+    // Modify owner capability if it already exists
+    for (Capability *cap = owner->capability_list->head; cap != NULL; cap = cap->next) {
+        // Check if the capability is for the file
+        if (!strcmp(cap->file->name, file->name)) {
+            // If the capability needs to be removed
+            if (!owner_read && !owner_write) {
+                if (last_capability == NULL) {
+                    owner->capability_list->head = cap->next;
+                } else {
+                    last_capability->next = cap->next;
+                }
+                free(cap);
+                owner->capability_list->count--;
+            } else {
+                cap->read_permission = owner_read;
+                cap->write_permission = owner_write;
+            }
+            is_modified = true;
+            break;
+        }
+        last_capability = cap;
+    }
+    pthread_mutex_unlock(&users_mutex);
+
+    // Add owner capability if it does not exist
+    if (!is_modified && (owner_read || owner_write)) {
+        add_owner_capability(file, owner, owner_read, owner_write);
+    }
+
+
+    is_modified = false;
+    last_capability = NULL;
+    pthread_mutex_lock(&groups_mutex);
+    // Modify group capability if it already exists
+    for (Capability *cap = owner->group->capability_list->head; cap != NULL; cap = cap->next) {
+        // Check if the capability is for the file
+        if (!strcmp(cap->file->name, file->name)) {
+            // If the capability needs to be removed
+            if (!group_read && !group_write) {
+                if (last_capability == NULL) {
+                    owner->group->capability_list->head = cap->next;
+                } else {
+                    last_capability->next = cap->next;
+                }
+                free(cap);
+                owner->group->capability_list->count--;
+            } else {
+                cap->read_permission = group_read;
+                cap->write_permission = group_write;
+            }
+            is_modified = true;
+            break;
+        }
+        last_capability = cap;
+    }
+    pthread_mutex_unlock(&groups_mutex);
+
+    // Add group capability if it does not exist
+    if (!is_modified && (group_read || group_write)) {
+        add_group_capability(file, owner->group, group_read, group_write);
+    }
+
+
+    // Modify others capability
+    for (User* user = users->head; user != NULL; user = user->next) {
+        // Skip owner and users in the same group as the owner
+        if (strcmp(user->name, owner->name)!=0 && strcmp(user->group->name, owner->group->name)!=0) {
+            is_modified = false;
+            last_capability = NULL;
+
+            pthread_mutex_lock(&users_mutex);
+            for (Capability *cap = user->capability_list->head; cap != NULL; cap = cap->next) {
+                // Check if the capability is for the file
+                if (!strcmp(cap->file->name, file->name)) {
+                    // If the capability needs to be removed
+                    if (!others_read && !others_write) {
+                        if (last_capability == NULL) {
+                            user->capability_list->head = cap->next;
+                        } else {
+                            last_capability->next = cap->next;
+                        }
+                        free(cap);
+                        user->capability_list->count--;
+                    } else {
+                        cap->read_permission = others_read;
+                        cap->write_permission = others_write;
+                    }
+                    is_modified = true;
+                    break;
+                }
+                last_capability = cap;
+            }
+            pthread_mutex_unlock(&users_mutex);
+            // Add others capability if it does not exist
+            if (!is_modified && (others_read || others_write)) {
+                add_owner_capability(file, user, others_read, others_write);
+            }
+        }
+    }
+// TODO: Test this function
 }
 
 bool user_has_capability(User *user, File *file, const char *operation) {
@@ -281,6 +391,9 @@ bool user_has_capability(User *user, File *file, const char *operation) {
     return false;
 }
 
+bool is_owner(User *user, File *file) {
+    return !strcmp(user->name, file->owner);
+}
 
 Groups* init_groups(void) {
     Groups *groups = malloc(sizeof(Groups));

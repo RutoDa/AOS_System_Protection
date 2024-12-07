@@ -48,6 +48,18 @@ int handle_command(int sock, Users* users, Files* files, char* command, char* us
         if (token == NULL) return -3; // Invalid format
         strcpy(parameter, token);
         return handle_write(sock, filename, parameter, users, user, files, response);
+    } else if (!strcmp(token, "mode")) {
+        strcpy(operation, token);
+        token = strtok(NULL, " ");
+        if (token == NULL) return -3; // Invalid format
+        strcpy(filename, token);
+        token = strtok(NULL, " ");
+        if (token == NULL) return -3; // Invalid format
+        strcpy(parameter, token);
+        return handle_mode(filename, parameter, users, user, files, response);
+    } else if (!strcmp(token, "exit")) {
+        close(sock);
+        return -9; // Exit
     } else return -3; // Invalid format
 }
 
@@ -128,4 +140,25 @@ int handle_write(int sock, char* filename, char* parameter, Users* users, User* 
         return -7; // File write successfully
     }
     return -5; // User does not have permission to write file
+}
+
+int handle_mode(char* filename, char* parameter, Users* users, User* user, Files* files, char* response) {
+    if (strlen(parameter) != 6) return -3; // Invalid format
+    File *file = find_file_by_name(files, filename);
+    if (file == NULL) return -2; // File not found
+    if (!is_owner(user, file)) return -8; // User is not the owner of the file
+
+    Group *group = user->group;
+
+    bool owner_read = parameter[0] == 'r';
+    bool owner_write = parameter[1] == 'w';
+    bool group_read = parameter[2] == 'r';
+    bool group_write = parameter[3] == 'w';
+    bool others_read = parameter[4] == 'r';
+    bool others_write = parameter[5] == 'w';
+
+    modify_capability(file, users, user, owner_read, owner_write, group_read, group_write, others_read, others_write);
+    strncpy(response, "File permissions changed successfully", strlen("File permissions changed successfully\n")+1);
+    
+    return 0;
 }

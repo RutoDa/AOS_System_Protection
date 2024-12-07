@@ -152,7 +152,11 @@ void add_group_capability(File *file, Group *group, bool read_permission, bool w
 
 void add_others_capability(File *file, Users *users, User *owner, bool read_permission, bool write_permission);
 
+void modify_capability(File *file, Users *users, User *owner, bool owner_read, bool owner_write, bool group_read, bool group_write, bool others_read, bool others_write);
+
 bool user_has_capability(User *user, File *file, const char *operation);
+
+bool is_owner(User *user, File *file);
 
 Files* init_files(void);
 

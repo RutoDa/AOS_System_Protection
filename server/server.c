@@ -10,7 +10,7 @@
 #include "capability.h"
 #include "command_handler.h"
 #include "init.h"
-//TODO: Sync 
+
 // Thread data
 typedef struct {
     int client_socket;

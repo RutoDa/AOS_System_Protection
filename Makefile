@@ -14,7 +14,7 @@ FILEDIR = files
 CLIENTDIR = client
 
 # Files to be compiled
-TARGET = server.exe client.exe
+TARGET = server.exe client.exe client_register.exe
 
 # Object files
 SERVER_OBJS = $(OBJDIR)/capability.o $(OBJDIR)/init.o $(OBJDIR)/command_handler.o $(OBJDIR)/server.o
@@ -51,6 +51,10 @@ $(OBJDIR)/init.o: $(SRCDIR)/init.c $(OBJDIR)/capability.o
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 client.exe: $(CLIENTDIR)/client.c
+	@echo "Compiling $< ..."
+	@$(CC) $(CFLAGS) -o $@ $<
+
+client_register.exe: $(CLIENTDIR)/client_register.c
 	@echo "Compiling $< ..."
 	@$(CC) $(CFLAGS) -o $@ $<
 

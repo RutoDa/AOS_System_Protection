@@ -1,6 +1,6 @@
 # File System Server
 > * Advanced Operating Systems - Homework 2(System Protection & Distributed Synchronization)
-> * Homework requirements: [<a src="Advanced Operating Systems - Homework 2.pdf">Advanced Operating Systems - Homework 2</a>](https://github.com/RutoDa/AOS_System_Protection/blob/main/Advanced%20Operating%20Systems%20-%20Homework%202.pdf)
+> * Homework requirements: [Advanced Operating Systems - Homework 2](https://github.com/RutoDa/AOS_System_Protection/blob/main/Advanced%20Operating%20Systems%20-%20Homework%202.pdf)
 
 ## Compile
 ### Compile Server and Client

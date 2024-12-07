@@ -1,7 +1,9 @@
 #ifndef COMMAND_HANDLER_H
 #define COMMAND_HANDLER_H
 
-void parse_data(char* buffer, char *command, char* username);
+int parse_data(char* buffer, char *command, char* username);
+
+int register_user(Users *users, Groups *groups, char* command, char* response);
 
 int handle_command(int sock, Users* users, Files* files, char* command, char* username, char* response);
 

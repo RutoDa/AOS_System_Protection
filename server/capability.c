@@ -347,7 +347,6 @@ void modify_capability(File *file, Users *users, User *owner, bool owner_read, b
             }
         }
     }
-// TODO: Test this function
 }
 
 bool user_has_capability(User *user, File *file, const char *operation) {

@@ -15,6 +15,7 @@
 typedef struct {
     int client_socket;
     Users *users;
+    Groups *groups;
     Files *files;
 } thread_data_t;
 
@@ -27,6 +28,7 @@ void* handle_client(void* arg) {
     thread_data_t *data = (thread_data_t*)arg;
     int sock = data->client_socket;
     Users *users = data->users;
+    Groups *groups = data->groups;
     Files *files = data->files;
     char buffer[BUFFER_SIZE];
     char response[BUFFER_SIZE];
@@ -37,32 +39,33 @@ void* handle_client(void* arg) {
         if (bytes_received <= 0) break;
 
         char command[50], username[50];
-        parse_data(buffer, command, username);                
+        int status = parse_data(buffer, command, username);  
         printf("Recevied: {User: %s, Command: %s}\n", username, command);
+
+        // Register user
+        if (status == 1) {
+            memset(response, 0, BUFFER_SIZE);
+            int result = register_user(users, groups, command, response);
+            if (result == -3) strcpy(response, "Error: Invalid format");
+            else if (result == -4) strcpy(response, "Error: User already exists");
+            send(sock, response, strlen(response), 0);
+            continue;
+        }
         
+        // Handle command
         memset(response, 0, BUFFER_SIZE);
         int result = handle_command(sock, users, files, command, username, response);
         
-        if (result == -1)
-            strcpy(response, "Error: User not found");
-        else if (result == -2)
-            strcpy(response, "Error: File not found");
-        else if (result == -3)
-            strcpy(response, "Error: Invalid format");
-        else if (result == -4)
-            strcpy(response, "Error: File already exists");
-        else if (result == -5)
-            strcpy(response, "Error: User does not have permission");
-        else if (result == -6 || result == -7) // File read or write successfully
-            return NULL;
-        else if (result == -8)
-            strcpy(response, "Error: User is not the owner of the file");
-        else if (result == -9)
-            break;
-        else if (result == -10)
-            strcpy(response, "Error: File is being read or written");
-        else if (result == -11)
-            strcpy(response, "Error: File is being written");
+        if (result == -1) strcpy(response, "Error: User not found");
+        else if (result == -2) strcpy(response, "Error: File not found");
+        else if (result == -3) strcpy(response, "Error: Invalid format");
+        else if (result == -4) strcpy(response, "Error: File already exists");
+        else if (result == -5) strcpy(response, "Error: User does not have permission");
+        else if (result == -6 || result == -7)  return NULL; // File read or write successfully
+        else if (result == -8) strcpy(response, "Error: User is not the owner of the file");
+        else if (result == -9) break; // Exit
+        else if (result == -10) strcpy(response, "Error: File is being read or written");
+        else if (result == -11) strcpy(response, "Error: File is being written");
         
         send(sock, response, strlen(response), 0);
     }
@@ -128,6 +131,7 @@ int main(void) {
         thread_data_t *data = malloc(sizeof(thread_data_t));
         data->client_socket = client_socket;
         data->users = users;
+        data->groups = groups;
         data->files = files;
         
         if (pthread_create(&threads[thread_count], NULL, handle_client, (void*)data) < 0) {

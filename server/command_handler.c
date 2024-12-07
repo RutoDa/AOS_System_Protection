@@ -10,11 +10,41 @@
 
 #define BUFFER_SIZE 1024
 
-void parse_data(char* buffer, char *command, char* username) {
+int parse_data(char* buffer, char *command, char* username) {
     char *token = strtok(buffer, "|}{|");
     strcpy(command, token);
     token = strtok(NULL, "|}{|");
     strcpy(username, token);
+
+    if (strncmp(command, "register", 8) == 0) return 1; // Register command
+    return 0; // Other command
+}
+
+int register_user(Users *users, Groups *groups, char* command, char* response) {
+    char username[50];
+    char groupname[50];
+
+    // Parse the command
+    char *token = strtok(command, " ");
+    if (token == NULL) return -3; // Invalid format
+    token = strtok(NULL, " ");
+    if (token == NULL) return -3; // Invalid format
+    strcpy(username, token);
+    token = strtok(NULL, " ");
+    if (token == NULL) return -3; // Invalid format
+    strcpy(groupname, token);
+    
+    // Check if the user already exists
+    if (find_user_by_name(users, username) != NULL) return -4; // User already exists
+    // Check if the group exists
+    if (find_group_by_name(groups, groupname) == NULL) {
+        // Create the group if it does not exist
+        Group *new_group = create_group(groups, groupname);
+    }
+    // Create the user
+    User *new_user = create_user(users, groups, username, groupname);
+    strncpy(response, "User registered successfully", strlen("User registered successfully\n")+1);
+    return 0;
 }
 
 int handle_command(int sock, Users* users, Files* files, char* command, char* username, char* response) {

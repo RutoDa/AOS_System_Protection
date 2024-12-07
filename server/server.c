@@ -34,15 +34,17 @@ void* handle_client(void* arg) {
     char response[BUFFER_SIZE];
     
     while (1) {
+        // Receive data from client
         memset(buffer, 0, BUFFER_SIZE);
         int bytes_received = recv(sock, buffer, BUFFER_SIZE, 0);
         if (bytes_received <= 0) break;
 
+        // Parse data
         char command[50], username[50];
         int status = parse_data(buffer, command, username);  
         printf("Recevied: {User: %s, Command: %s}\n", username, command);
 
-        // Register user
+        // Handle register command
         if (status == 1) {
             memset(response, 0, BUFFER_SIZE);
             int result = register_user(users, groups, command, response);
@@ -52,10 +54,11 @@ void* handle_client(void* arg) {
             continue;
         }
         
-        // Handle command
+        // Handle other commands
         memset(response, 0, BUFFER_SIZE);
         int result = handle_command(sock, users, files, command, username, response);
         
+        //Send Error message if command failed
         if (result == -1) strcpy(response, "Error: User not found");
         else if (result == -2) strcpy(response, "Error: File not found");
         else if (result == -3) strcpy(response, "Error: Invalid format");
@@ -67,9 +70,10 @@ void* handle_client(void* arg) {
         else if (result == -10) strcpy(response, "Error: File is being read or written");
         else if (result == -11) strcpy(response, "Error: File is being written");
         
+        // Send response to client
         send(sock, response, strlen(response), 0);
     }
-    
+    // Free data and close socket
     free(data);
     close(sock);
 }
@@ -83,7 +87,7 @@ int main(void) {
     init_system(groups, users, files);
     
 
-    
+    // Create a socket and listen for incoming connections
     int server_fd, client_socket;
     struct sockaddr_in address;
     int addrlen = sizeof(address);
@@ -103,6 +107,7 @@ int main(void) {
         exit(EXIT_FAILURE);
     }
 
+    // Set server address and port
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
@@ -123,26 +128,26 @@ int main(void) {
     printf("Server listening on port %d\n", PORT);
 
     while (1) {
+        // Accept incoming connections
         if ((client_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
             perror("accept");
             continue;
         }
-
+        // Create a new thread to handle the client
         thread_data_t *data = malloc(sizeof(thread_data_t));
         data->client_socket = client_socket;
         data->users = users;
         data->groups = groups;
         data->files = files;
-        
+        // Create a new thread
         if (pthread_create(&threads[thread_count], NULL, handle_client, (void*)data) < 0) {
             perror("could not create thread");
             continue;
         }
-
+        // Increment thread count
         thread_count = (thread_count + 1) % MAX_CLIENTS;
     }
-
-
+    // Free resources
     free_system(groups, users, files);
     return 0;
 }

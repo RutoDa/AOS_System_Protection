@@ -3,6 +3,12 @@
 #include "capability.h"
 
 
+/**
+ * Initialize the system with default groups and users
+ * @param groups The list of groups
+ * @param users The list of users
+ * @param files The list of files
+ */
 void init_system(Groups *groups, Users *users, Files *files) {
     // Delete Files in the files folder
     system("rm -rf files/*");

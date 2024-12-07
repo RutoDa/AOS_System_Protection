@@ -63,7 +63,7 @@ int main(void)
     // Prompt user to enter username
     printf("Welcome to the file system client\n");
     printf("Enter username: ");
-
+    // Read username from stdin
     fgets(username, 50, stdin);
     username[strcspn(username, "\n")] = '\0';
 
@@ -78,6 +78,7 @@ int main(void)
 
     while (1)
     {
+        // Read command from stdin
         char command[BUFFER_SIZE];
         printf("> ");
         fflush(stdout);
@@ -93,16 +94,20 @@ int main(void)
             exit(1);
         }
 
+        // Connect to server
         sock = connect_to_server();
+        // Send command to server
         send(sock, full_command, strlen(full_command), 0);
-
+        // Read response from server
         memset(buffer, 0, BUFFER_SIZE);
         read(sock, buffer, BUFFER_SIZE);
 
         char *token = strtok(command, " ");
-
+        
+        // Handle server response
         if (!strcmp(token, "read") && !has_error(buffer))
         {
+            // Download file from server
             char filename[256];
             token = strtok(NULL, " ");
             strcpy(filename, token);
@@ -128,6 +133,7 @@ int main(void)
         }
         else if (!strcmp(token, "write") && !has_error(buffer))
         {
+            // Upload file to server
             char filename[256];
             token = strtok(NULL, " ");
             strcpy(filename, token);
@@ -148,10 +154,12 @@ int main(void)
             printf("[Server] File (%s) upload completed!\n", filename);
         } else if (!strcmp(token, "exit"))
         {
+            // Exit client
             close(sock);
             break;
         } else
         {
+            // Print server response
             printf("[Server] %s\n", buffer);
             fflush(stdout);
         }

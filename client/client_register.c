@@ -45,6 +45,8 @@ int main(int argc, char *argv[])
 {
     char username[50];
     char groupname[50];
+
+    // Check for correct number of arguments and length of username and groupname
     if (argc != 3)
     {
         fprintf(stderr, "Usage: %s <username> <groupname>\n", argv[0]);
@@ -62,6 +64,8 @@ int main(int argc, char *argv[])
 
     int sock = 0;
     char buffer[BUFFER_SIZE] = {0};
+
+    // Create a socket and connect to the server
     char full_command[BUFFER_SIZE];
     int ret = snprintf(full_command, sizeof(full_command), "register %s %s|}{|%s",
                         username, groupname, username);
@@ -70,13 +74,14 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Error: command buffer overflow\n");
         exit(1);
     }
-
+    // Connect to server
     sock = connect_to_server();
+    // Send command to server
     send(sock, full_command, strlen(full_command), 0);
-
+    // Read response from server
     memset(buffer, 0, BUFFER_SIZE);
     read(sock, buffer, BUFFER_SIZE);
-
+    // Print response from server
     printf("[server] %s\n", buffer);
     close(sock);
 

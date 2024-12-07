@@ -8,7 +8,12 @@ pthread_mutex_t users_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t groups_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t files_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-
+/**
+ * Create a new group
+ * @param groups The list of groups
+ * @param group_name The name of the group
+ * @return The new group
+ */
 Group* create_group(Groups *groups, const char *group_name) {
     Group *group = malloc(sizeof(Group));
     if (group == NULL) {
@@ -42,6 +47,13 @@ Group* create_group(Groups *groups, const char *group_name) {
     return group;
 }
 
+
+/**
+ * Find a group by name
+ * @param groups The list of groups
+ * @param group_name The name of the group
+ * @return The group if found, NULL otherwise
+ */
 Group* find_group_by_name(Groups *groups, const char *group_name) {
     pthread_mutex_lock(&groups_mutex);
     for (Group* group = groups->head; group != NULL; group = group->next) {
@@ -55,6 +67,12 @@ Group* find_group_by_name(Groups *groups, const char *group_name) {
     return NULL;
 }
 
+/**
+ * Find a user by name
+ * @param users The list of users
+ * @param user_name The name of the user
+ * @return The user if found, NULL otherwise
+ */
 User* find_user_by_name(Users *users, const char *user_name) {
     pthread_mutex_lock(&users_mutex);
     for (User* user = users->head; user != NULL; user = user->next) {
@@ -67,6 +85,12 @@ User* find_user_by_name(Users *users, const char *user_name) {
     return NULL;
 }
 
+/**
+ * Find a file by name
+ * @param files The list of files
+ * @param file_name The name of the file
+ * @return The file if found, NULL otherwise
+ */
 File* find_file_by_name(Files *files, const char *file_name) {
     pthread_mutex_lock(&files_mutex);
     for (File* file = files->head; file != NULL; file = file->next) {
@@ -79,6 +103,14 @@ File* find_file_by_name(Files *files, const char *file_name) {
     return NULL;
 }
 
+/**
+ * Create a new user
+ * @param users The list of users
+ * @param groups The list of groups
+ * @param username The name of the user
+ * @param group_name The name of the group the user belongs to
+ * @return The new user
+ */
 User* create_user(Users *users, Groups *groups, char *username, char *group_name) {
     User *user = malloc(sizeof(User));
     if (user == NULL) {
@@ -120,6 +152,13 @@ User* create_user(Users *users, Groups *groups, char *username, char *group_name
     return user;
 }
 
+/**
+ * Create a new file
+ * @param files The list of files
+ * @param file_name The name of the file
+ * @param owner The owner of the file
+ * @return The new file
+ */
 File* create_file(Files* files, const char *file_name, User *owner) {
     File *file = malloc(sizeof(File));
     if (file == NULL) {
@@ -160,6 +199,13 @@ File* create_file(Files* files, const char *file_name, User *owner) {
     return file;
 }
 
+/**
+ * Add a capability to the owner of a file
+ * @param file The file to add the capability to
+ * @param user The owner of the file
+ * @param read_permission The read permission
+ * @param write_permission The write permission
+ */
 void add_owner_capability(File *file, User *user, bool read_permission, bool write_permission) {
     Capability *capability = malloc(sizeof(Capability));
     if (capability == NULL) {
@@ -186,6 +232,13 @@ void add_owner_capability(File *file, User *user, bool read_permission, bool wri
     pthread_mutex_unlock(&users_mutex);
 }
 
+/**
+ * Add a capability to a group
+ * @param file The file to add the capability to
+ * @param group The group to add the capability to
+ * @param read_permission The read permission
+ * @param write_permission The write permission
+ */
 void add_group_capability(File *file, Group *group, bool read_permission, bool write_permission) {
     Capability *capability = malloc(sizeof(Capability));
     if (capability == NULL) {
@@ -211,6 +264,14 @@ void add_group_capability(File *file, Group *group, bool read_permission, bool w
     pthread_mutex_unlock(&groups_mutex);
 }
 
+/**
+ * Add capabilities to all users except the owner and users in the same group as the owner
+ * @param file The file to add the capabilities to
+ * @param users The list of users
+ * @param owner The owner of the file
+ * @param read_permission The read permission
+ * @param write_permission The write permission
+ */
 void add_others_capability(File *file, Users *users, User *owner, bool read_permission, bool write_permission) {
     pthread_mutex_lock(&users_mutex);
 
@@ -239,10 +300,21 @@ void add_others_capability(File *file, Users *users, User *owner, bool read_perm
             user->capability_list->count++;
         }
     }
-
     pthread_mutex_unlock(&users_mutex);
 }
 
+/**
+ * Modify the capabilities of a file
+ * @param file The file to modify the capabilities of
+ * @param users The list of users
+ * @param owner The owner of the file
+ * @param owner_read The owner read permission
+ * @param owner_write The owner write permission
+ * @param group_read The group read permission
+ * @param group_write The group write permission
+ * @param others_read The others read permission
+ * @param others_write The others write permission
+ */
 void modify_capability(File *file, Users *users, User *owner, bool owner_read, bool owner_write, bool group_read, bool group_write, bool others_read, bool others_write) {
     bool is_modified = false;
     Capability *last_capability = NULL;
@@ -349,6 +421,13 @@ void modify_capability(File *file, Users *users, User *owner, bool owner_read, b
     }
 }
 
+/**
+ * Check if a user has a capability for a file
+ * @param user The user to check
+ * @param file The file to check
+ * @param operation The operation to check
+ * @return true if the user has the capability, false otherwise
+ */
 bool user_has_capability(User *user, File *file, const char *operation) {
     CapabilityList *user_cap = user->capability_list;
 
@@ -390,10 +469,20 @@ bool user_has_capability(User *user, File *file, const char *operation) {
     return false;
 }
 
+/**
+ * Check if a user is the owner of a file
+ * @param user The user to check
+ * @param file The file to check
+ * @return true if the user is the owner, false otherwise
+ */
 bool is_owner(User *user, File *file) {
     return !strcmp(user->name, file->owner);
 }
 
+/**
+ * Initialize the groups list
+ * @return The new groups list
+ */
 Groups* init_groups(void) {
     Groups *groups = malloc(sizeof(Groups));
     if (groups == NULL) {
@@ -406,6 +495,10 @@ Groups* init_groups(void) {
     return groups;
 }
 
+/**
+ * Initialize the users list
+ * @return The new users list
+ */
 Users* init_users(void) {
     Users *users = malloc(sizeof(Users));
     if (users == NULL) {
@@ -418,6 +511,10 @@ Users* init_users(void) {
     return users;
 }
 
+/**
+ * Initialize the files list
+ * @return The new files list
+ */
 Files* init_files(void) {
     Files *files = malloc(sizeof(Files));
     if (files == NULL) {
@@ -430,6 +527,12 @@ Files* init_files(void) {
     return files;
 }
 
+/**
+ * Initialize the system with default groups and users
+ * @param groups The list of groups
+ * @param users The list of users
+ * @param files The list of files
+ */
 void free_system(Groups *groups, Users *users, Files *files) {
     Group *group = groups->head;
     while (group != NULL) {

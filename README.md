@@ -31,7 +31,7 @@ make clean
 1. Execute the client program
 2. Then enter username
 #### Create a file
-```bash
+```
 create <filename> <mode>
 ```
 - Create a file with the given name and mode
@@ -39,7 +39,7 @@ create <filename> <mode>
   - If the format is not correct, show "Invalid format"
   
 #### Read(Download) the file
-```bash
+```
 read homework2.c
 ```
 - Download the file from the server
@@ -49,7 +49,7 @@ read homework2.c
   - If the format is not correct, show "Invalid format"
 
 #### Write(Upload) the file
-```bash
+```
 write homework2.c o/a
 ```
 - Upload the file to the server
@@ -59,7 +59,7 @@ write homework2.c o/a
   - If the format is not correct, show "Invalid format"
 
 #### Change the mode of the file
-```bash
+```
 mode homework2.c rw----
 ```
 - Only the owner of the file can change the mode of the file
@@ -68,7 +68,7 @@ mode homework2.c rw----
   - If the format is not correct, show "Invalid format"
 
 #### Exit the client
-```bash 
+``` 
 exit
 ```
 
